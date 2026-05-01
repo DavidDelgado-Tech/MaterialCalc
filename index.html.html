@@ -1,0 +1,664 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mario's Brain — Fence Material Calculator</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Barlow:wght@400;500;600;700&family=Barlow+Condensed:wght@600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #0f1117;
+  --surface: #181c27;
+  --surface2: #1e2335;
+  --border: rgba(255,255,255,0.08);
+  --border2: rgba(255,255,255,0.14);
+  --accent: #f5a623;
+  --accent2: #e8863a;
+  --green: #3ecf8e;
+  --red: #ff6b6b;
+  --text: #e8eaf0;
+  --muted: #7a8099;
+  --dim: #4a5068;
+  --radius: 8px;
+  --radius-lg: 12px;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: 'Barlow', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  font-size: 14px;
+  line-height: 1.5;
+}
+header {
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  padding: 1rem 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+.logo {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: .02em;
+  color: var(--accent);
+}
+.logo span { color: var(--text); font-weight: 400; }
+.version {
+  font-family: 'DM Mono', monospace;
+  font-size: 11px;
+  color: var(--dim);
+  background: var(--surface2);
+  padding: 3px 8px;
+  border-radius: 4px;
+  border: 1px solid var(--border);
+}
+main { max-width: 900px; margin: 0 auto; padding: 1.5rem 1rem 4rem; }
+
+.section {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 1.25rem;
+  margin-bottom: 1rem;
+}
+.section-label {
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: .12em;
+  color: var(--dim);
+  text-transform: uppercase;
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.section-label::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--border);
+}
+
+.toggle-group { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 10px; }
+.tog {
+  padding: 7px 14px;
+  border: 1px solid var(--border2);
+  border-radius: var(--radius);
+  background: transparent;
+  color: var(--muted);
+  font-family: 'Barlow', sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all .15s;
+  white-space: nowrap;
+}
+.tog:hover { border-color: var(--accent); color: var(--text); }
+.tog.active { background: var(--accent); border-color: var(--accent); color: #111; font-weight: 600; }
+.tog.green.active { background: var(--green); border-color: var(--green); color: #111; }
+
+.grid { display: grid; gap: 10px; }
+.g2 { grid-template-columns: 1fr 1fr; }
+.g3 { grid-template-columns: 1fr 1fr 1fr; }
+.g4 { grid-template-columns: 1fr 1fr 1fr 1fr; }
+@media(max-width:600px) {
+  .g2,.g3,.g4 { grid-template-columns: 1fr 1fr; }
+}
+
+.field { display: flex; flex-direction: column; gap: 4px; }
+.field label {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--muted);
+  letter-spacing: .03em;
+}
+.field input, .field select {
+  background: var(--surface2);
+  border: 1px solid var(--border2);
+  border-radius: var(--radius);
+  color: var(--text);
+  font-family: 'Barlow', sans-serif;
+  font-size: 14px;
+  padding: 8px 10px;
+  width: 100%;
+  transition: border-color .15s;
+  -webkit-appearance: none;
+}
+.field input:focus, .field select:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+.field select { cursor: pointer; }
+
+.generate-btn {
+  width: 100%;
+  padding: 14px;
+  background: var(--accent);
+  border: none;
+  border-radius: var(--radius-lg);
+  color: #111;
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: .05em;
+  cursor: pointer;
+  margin-bottom: 1.5rem;
+  transition: background .15s, transform .1s;
+}
+.generate-btn:hover { background: var(--accent2); }
+.generate-btn:active { transform: scale(0.99); }
+
+/* Results */
+#results { display: none; }
+#results.show { display: block; }
+
+.result-card {
+  background: var(--surface);
+  border: 1px solid var(--border2);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+.result-header {
+  background: var(--surface2);
+  border-bottom: 1px solid var(--border);
+  padding: 1rem 1.25rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.result-jobname {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: .03em;
+  color: var(--accent);
+}
+.result-meta {
+  font-family: 'DM Mono', monospace;
+  font-size: 11px;
+  color: var(--muted);
+  background: var(--bg);
+  padding: 4px 10px;
+  border-radius: 4px;
+  border: 1px solid var(--border);
+}
+
+.stats-bar {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  border-bottom: 1px solid var(--border);
+}
+@media(max-width:500px) { .stats-bar { grid-template-columns: 1fr 1fr; } }
+.stat-item {
+  padding: .75rem 1rem;
+  border-right: 1px solid var(--border);
+}
+.stat-item:last-child { border-right: none; }
+.stat-label { font-size: 10px; color: var(--dim); font-family: 'DM Mono', monospace; letter-spacing: .08em; margin-bottom: 2px; }
+.stat-val { font-size: 22px; font-weight: 700; color: var(--text); font-family: 'Barlow Condensed', sans-serif; }
+
+.mat-table { width: 100%; border-collapse: collapse; }
+.mat-table th {
+  text-align: left;
+  padding: 8px 12px;
+  font-size: 10px;
+  font-family: 'DM Mono', monospace;
+  letter-spacing: .1em;
+  color: var(--dim);
+  border-bottom: 1px solid var(--border);
+  background: var(--bg);
+}
+.mat-table th:last-child { text-align: right; }
+.mat-table td {
+  padding: 9px 12px;
+  border-bottom: 1px solid var(--border);
+  vertical-align: middle;
+}
+.mat-table tr:last-child td { border-bottom: none; }
+.mat-table td:last-child { text-align: right; font-family: 'DM Mono', monospace; font-size: 15px; font-weight: 500; color: var(--accent); }
+.mat-table td:nth-child(2) { font-size: 11px; color: var(--dim); font-family: 'DM Mono', monospace; text-align: right; padding-right: 8px; }
+
+.cat-row td {
+  background: var(--bg);
+  color: var(--dim);
+  font-size: 10px;
+  font-family: 'DM Mono', monospace;
+  letter-spacing: .12em;
+  padding: 6px 12px;
+  border-bottom: 1px solid var(--border);
+}
+
+.item-name { font-size: 13px; font-weight: 500; color: var(--text); }
+.item-spec { font-size: 11px; color: var(--dim); margin-top: 1px; font-family: 'DM Mono', monospace; }
+
+.result-footer {
+  padding: 1rem 1.25rem;
+  border-top: 1px solid var(--border);
+  background: var(--bg);
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.copy-btn {
+  padding: 8px 18px;
+  background: transparent;
+  border: 1px solid var(--border2);
+  border-radius: var(--radius);
+  color: var(--text);
+  font-family: 'Barlow', sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all .15s;
+}
+.copy-btn:hover { border-color: var(--accent); color: var(--accent); }
+.copy-btn.success { border-color: var(--green); color: var(--green); }
+
+.note-text {
+  font-size: 11px;
+  color: var(--dim);
+  font-family: 'DM Mono', monospace;
+  flex: 1;
+  min-width: 200px;
+}
+
+.brace-note {
+  display: none;
+  background: rgba(245,166,35,0.08);
+  border: 1px solid rgba(245,166,35,0.25);
+  border-radius: var(--radius);
+  padding: 8px 12px;
+  font-size: 12px;
+  color: var(--accent);
+  margin-top: 8px;
+}
+.brace-note.show { display: block; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">Mario's Brain <span>— Fence Calculator</span></div>
+  <div class="version">v3.0 · Gomez & Son Fence</div>
+</header>
+
+<main>
+
+  <!-- Grade -->
+  <div class="section">
+    <div class="section-label">Grade</div>
+    <div class="toggle-group">
+      <button class="tog active" id="g-comm" onclick="setGrade('commercial')">Commercial (parks, schools, gov)</button>
+      <button class="tog" id="g-mid" onclick="setGrade('mid')">Mid-grade (B2B private)</button>
+      <button class="tog" id="g-light" onclick="setGrade('light')">Light (residential)</button>
+    </div>
+    <div class="section-label" style="margin-top:10px">Finish</div>
+    <div class="toggle-group">
+      <button class="tog active" id="f-blk" onclick="setFinish('black')">Black vinyl coated</button>
+      <button class="tog green" id="f-grn" onclick="setFinish('green')">Green vinyl coated</button>
+      <button class="tog" id="f-galv" onclick="setFinish('galvanized')">Galvanized</button>
+    </div>
+  </div>
+
+  <!-- Job info -->
+  <div class="section">
+    <div class="section-label">Job info</div>
+    <div class="grid g2" style="margin-bottom:10px">
+      <div class="field"><label>Job name / PO number</label><input id="jobname" type="text" placeholder="e.g. FREEDOM 1616"></div>
+      <div class="field"><label>Fence height (ft)</label>
+        <select id="height">
+          <option value="4">4 ft</option>
+          <option value="5">5 ft</option>
+          <option value="6" selected>6 ft</option>
+          <option value="7">7 ft</option>
+          <option value="8">8 ft</option>
+          <option value="10">10 ft</option>
+          <option value="12">12 ft</option>
+        </select>
+      </div>
+    </div>
+    <div class="grid g3">
+      <div class="field"><label>Total linear footage</label><input id="lf" type="number" min="1" placeholder="e.g. 450"></div>
+      <div class="field"><label>Post spacing (ft OC)</label>
+        <select id="spacing">
+          <option value="10" selected>10 ft (standard)</option>
+          <option value="8">8 ft</option>
+          <option value="12">12 ft</option>
+        </select>
+      </div>
+      <div class="field"><label>Overage %</label>
+        <select id="waste">
+          <option value="5">5% — flat / easy</option>
+          <option value="10" selected>10% — standard</option>
+          <option value="15">15% — rough / complex</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <!-- Terminal posts -->
+  <div class="section">
+    <div class="section-label">Terminal posts</div>
+    <div class="grid g4">
+      <div class="field"><label>Corner posts</label><input id="corners" type="number" min="0" value="0"></div>
+      <div class="field"><label>End posts</label><input id="ends" type="number" min="0" value="2"></div>
+      <div class="field"><label>Terminal post OD</label>
+        <select id="term-od">
+          <option value='3"'>3" OD — standard commercial</option>
+          <option value='4"'>4" OD — heavy commercial</option>
+        </select>
+      </div>
+      <div class="field"><label>Line post OD</label>
+        <select id="line-od">
+          <option value='2-1/2"' selected>2-1/2" — commercial</option>
+          <option value='2"'>2" — light grade</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <!-- Gates -->
+  <div class="section">
+    <div class="section-label">Gates</div>
+    <div class="grid g3" style="margin-bottom:10px">
+      <div class="field"><label>Walk gate (4 ft)</label><input id="walk4" type="number" min="0" value="0"></div>
+      <div class="field"><label>Double drive (12 ft)</label><input id="drive12" type="number" min="0" value="0"></div>
+      <div class="field"><label>Double drive (16 ft)</label><input id="drive16" type="number" min="0" value="0"></div>
+    </div>
+    <div class="grid g3">
+      <div class="field"><label>Double drive (20 ft)</label><input id="drive20" type="number" min="0" value="0"></div>
+      <div class="field"><label>Slide gate (12 ft)</label><input id="slide12" type="number" min="0" value="0"></div>
+      <div class="field"><label>Slide gate (16 ft)</label><input id="slide16" type="number" min="0" value="0"></div>
+    </div>
+  </div>
+
+  <!-- Barbed wire & braces -->
+  <div class="section">
+    <div class="section-label">Barbed wire, mesh & brace runs</div>
+    <div class="grid g3">
+      <div class="field"><label>Barbed wire strands</label>
+        <select id="bwstrands">
+          <option value="0">None</option>
+          <option value="1">1 strand</option>
+          <option value="2">2 strands</option>
+          <option value="3" selected>3 strands (standard)</option>
+        </select>
+      </div>
+      <div class="field"><label>Mesh opening</label>
+        <select id="mesh">
+          <option value='2"' selected>2" (standard)</option>
+          <option value='1-3/4"'>1-3/4" (tennis court)</option>
+        </select>
+      </div>
+      <div class="field"><label>Brace runs (diagonal)</label><input id="braces" type="number" min="0" value="0" placeholder="0"></div>
+    </div>
+    <div class="brace-note" id="brace-note">Each brace run: +1 brace band on terminal post, +1 brace band on adjacent line post, +1 brace rail section.</div>
+  </div>
+
+  <button class="generate-btn" onclick="calculate()">GENERATE MATERIAL LIST →</button>
+
+  <!-- Results -->
+  <div id="results">
+    <div class="result-card">
+      <div class="result-header">
+        <div class="result-jobname" id="res-jobname">Job breakdown</div>
+        <div class="result-meta" id="res-meta">—</div>
+      </div>
+      <div class="stats-bar">
+        <div class="stat-item"><div class="stat-label">LINEAR FT</div><div class="stat-val" id="s-lf">—</div></div>
+        <div class="stat-item"><div class="stat-label">LINE POSTS</div><div class="stat-val" id="s-lp">—</div></div>
+        <div class="stat-item"><div class="stat-label">TERM POSTS</div><div class="stat-val" id="s-tp">—</div></div>
+        <div class="stat-item"><div class="stat-label">FABRIC LF</div><div class="stat-val" id="s-fab">—</div></div>
+      </div>
+      <table class="mat-table" id="mat-table"></table>
+      <div class="result-footer">
+        <button class="copy-btn" id="copy-btn" onclick="copyList()">Copy supplier order</button>
+        <div class="note-text" id="res-note"></div>
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<script>
+let grade='commercial', finish='black';
+
+function setGrade(g){
+  grade=g;
+  document.querySelectorAll('[id^="g-"]').forEach(el=>el.classList.remove('active'));
+  const map={commercial:'comm',mid:'mid',light:'light'};
+  document.getElementById('g-'+map[g]).classList.add('active');
+}
+function setFinish(f){
+  finish=f;
+  document.querySelectorAll('[id^="f-"]').forEach(el=>el.classList.remove('active'));
+  const map={black:'blk',green:'grn',galvanized:'galv'};
+  document.getElementById('f-'+map[f]).classList.add('active');
+}
+document.getElementById('braces').addEventListener('input',function(){
+  const note=document.getElementById('brace-note');
+  note.classList.toggle('show', parseInt(this.value)>0);
+});
+
+function railSize(){ return grade==='light'?'1-3/8"':'1-5/8"'; }
+function fabricGauge(){ return finish==='galvanized'?'9 ga':'6 ga (9 ga core)'; }
+function finLabel(){ return {black:'black vinyl coated',green:'green vinyl coated',galvanized:'galvanized'}[finish]; }
+function finShort(){ return {black:'BLK VNL',green:'GRN VNL',galvanized:'GALV'}[finish]; }
+
+function calculate(){
+  const lf=parseFloat(document.getElementById('lf').value);
+  if(!lf||lf<=0){alert('Enter total linear footage.');return;}
+
+  const h=parseFloat(document.getElementById('height').value);
+  const spacing=parseFloat(document.getElementById('spacing').value);
+  const wastePct=parseFloat(document.getElementById('waste').value)/100;
+  const corners=parseInt(document.getElementById('corners').value)||0;
+  const ends=parseInt(document.getElementById('ends').value)||0;
+  const termOD=document.getElementById('term-od').value;
+  const lineOD=document.getElementById('line-od').value;
+  const bwStrands=parseInt(document.getElementById('bwstrands').value);
+  const mesh=document.getElementById('mesh').value;
+  const braces=parseInt(document.getElementById('braces').value)||0;
+  const walk4=parseInt(document.getElementById('walk4').value)||0;
+  const drive12=parseInt(document.getElementById('drive12').value)||0;
+  const drive16=parseInt(document.getElementById('drive16').value)||0;
+  const drive20=parseInt(document.getElementById('drive20').value)||0;
+  const slide12=parseInt(document.getElementById('slide12').value)||0;
+  const slide16=parseInt(document.getElementById('slide16').value)||0;
+  const job=document.getElementById('jobname').value||'Material breakdown';
+
+  const W=1+wastePct;
+  const gateWidth=(walk4*4)+(drive12*12)+(drive16*16)+(drive20*20)+(slide12*12)+(slide16*16);
+  const fenceLF=Math.max(lf-gateWidth,0);
+  const totalGates=walk4+drive12+drive16+drive20+slide12+slide16;
+  const gatePosts=totalGates*2;
+
+  // Posts
+  const rawLine=Math.max(Math.ceil(fenceLF/spacing)-1,0);
+  const rawTerm=corners+ends+gatePosts;
+  const linePosts=Math.ceil(rawLine*W);
+  const termPosts=Math.ceil(rawTerm*W);
+
+  // Fabric
+  const fabricLF=Math.ceil(fenceLF*W);
+
+  // Top rail
+  const topRailLF=Math.ceil(fenceLF*W);
+  const topRailSections=Math.ceil(topRailLF/21);
+  const sleeves=Math.ceil(topRailSections*0.5);
+
+  // Rail ends — 1 per end post, 1 per gate post, 2 per corner
+  const rawRailEnds=(ends*1)+(gatePosts*1)+(corners*2);
+  const railEnds=Math.ceil(rawRailEnds*W);
+
+  // Tension bars — length = height
+  // 2 per corner, 1 per end, 1 per gate post
+  const rawTBars=(corners*2)+ends+gatePosts;
+  const tBars=Math.ceil(rawTBars*W);
+
+  // Tension bands per post by height (per installation guide)
+  let tbPerEndGate=3;
+  if(h<=4) tbPerEndGate=3;
+  else if(h<=5) tbPerEndGate=4;
+  else if(h<=6) tbPerEndGate=5;
+  else tbPerEndGate=Math.ceil(h*0.85);
+  const rawTBands=((ends+gatePosts)*tbPerEndGate)+(corners*tbPerEndGate*2);
+  const tBands=Math.ceil(rawTBands*W);
+
+  // Brace bands — 2 per terminal post (top rail + bottom tension wire)
+  // + 2 per brace run (1 terminal side + 1 line post side)
+  const rawBBands=(rawTerm*2)+(braces*2);
+  const bBands=Math.ceil(rawBBands*W);
+
+  // Loop caps — 1 per line post
+  const loopCaps=linePosts;
+  // Dome caps — 1 per terminal post
+  const domeCaps=termPosts;
+
+  // Concrete — 1 bag per post hole (line + terminal)
+  const concrete=linePosts+termPosts;
+
+  // Carriage bolts
+  // 5/16x1-1/4 — 1 per tension band + 1 per brace band
+  const bolts114=Math.ceil((tBands+bBands)*W);
+  // 5/16x2-1/2 — 1 per rail end band
+  const bolts212=railEnds;
+
+  // Tension wire
+  const tensionWireLF=Math.ceil(fenceLF*W);
+  // Tension wire clips — 1 per 24"
+  const twClips=Math.ceil(tensionWireLF/2);
+
+  // Barbed wire
+  const bwLF=bwStrands>0?Math.ceil(lf*bwStrands*W):0;
+
+  // Fence ties
+  // Top rail: 1 per 24" = topRailLF/2
+  // Line posts: 1 per 12" per post = (height*12/12) per post = height ties per post
+  const topRailTies=Math.ceil(topRailLF/2);
+  const linePostTies=Math.ceil(rawLine*h);
+  const totalTies=Math.ceil((topRailTies+linePostTies)*W);
+
+  // Hog rings — 1 per 24" of bottom tension wire
+  const hogRings=Math.ceil(tensionWireLF/2);
+
+  // Spray paint — vinyl jobs only
+  const spray=finish!=='galvanized'?Math.max(Math.ceil(fabricLF/150),1)+1:0;
+
+  const rSz=railSize();
+  const fg=fabricGauge();
+  const fl=finLabel();
+  const fs=finShort();
+  const postLen=h<=6?'9':'12';
+  const postLenLine=h<=4?'8':(h<=6?'9':(h<=8?'10':'12'));
+
+  const rows=[
+    {cat:'Fabric'},
+    {name:`Chain link fabric — ${fs} ${mesh} x ${h}ft KK (${fg})`,qty:fabricLF,unit:'LF',spec:`${mesh} mesh · ${fg} · knuckle-knuckle · ${fl}`},
+
+    {cat:'Posts & concrete'},
+    {name:`Line post — ${lineOD} x ${postLenLine}ft ${fs}`,qty:linePosts,unit:'ea',spec:`${lineOD} OD · DQ40 commercial grade`},
+    {name:`Terminal post — ${termOD} x ${postLen}ft ${fs}`,qty:termPosts,unit:'ea',spec:`${termOD} OD · DQ40 · includes ${corners} corner, ${ends} end, ${gatePosts} gate posts`},
+    {name:'Concrete (80 lb bags)',qty:concrete,unit:'bags',spec:'1 bag per post hole'},
+    {name:`Loop cap — ${lineOD} x ${rSz} ${fs}`,qty:loopCaps,unit:'ea',spec:`for ${lineOD} line posts`},
+    {name:`Dome / terminal cap — ${termOD} ${fs}`,qty:domeCaps,unit:'ea',spec:`for ${termOD} terminal posts`},
+
+    {cat:'Top rail & connections'},
+    {name:`Top rail — ${rSz} x 21ft ${fs} (swedge end)`,qty:topRailSections,unit:'pcs',spec:`${rSz} · ${topRailLF} LF total`},
+    {name:`Top rail sleeve — ${rSz} ${fs}`,qty:sleeves,unit:'ea',spec:'if not using swedge end rail'},
+    {name:`Rail end combo — ${rSz} ${fs}`,qty:railEnds,unit:'ea',spec:`1 per end/gate post · 2 per corner`},
+
+    {cat:'Terminal post hardware'},
+    {name:`Tension band — ${termOD} ${fs}`,qty:tBands,unit:'ea',spec:`${tbPerEndGate} per end/gate · ${tbPerEndGate*2} per corner · ${termOD} OD`},
+    {name:`Brace band — ${termOD} ${fs}`,qty:bBands,unit:'ea',spec:`2 per terminal post · ${termOD} OD · +${braces>0?braces*2:0} for brace runs`},
+    {name:`Tension bar — ${h}ft x 3/4" ${fs}`,qty:tBars,unit:'ea',spec:`2 per corner · 1 per end/gate · height = ${h}ft`},
+
+    {cat:'Fasteners'},
+    {name:'Carriage bolt 5/16" x 1-1/4" w/nut',qty:bolts114,unit:'ea',spec:'1 per tension band + 1 per brace band'},
+    {name:'Carriage bolt 5/16" x 2-1/2" w/nut',qty:bolts212,unit:'ea',spec:'1 per rail end band'},
+
+    {cat:'Wire & ties'},
+    {name:`Bottom tension wire — ${finish!=='galvanized'?'6 ga':'7 ga'} coil ${fs}`,qty:tensionWireLF,unit:'LF',spec:'same LF as fence run'},
+    {name:`Tension wire clip (hog ring) ${fs}`,qty:twClips,unit:'ea',spec:'1 per 24" of tension wire'},
+    {name:`Fence tie — ${finish!=='galvanized'?'aluminum 9 ga':'steel 9 ga'} ${fs}`,qty:totalTies,unit:'ea',spec:`top rail: 1 per 24" · line posts: 1 per 12" per post`},
+    {name:`Steel hog ring ${fs}`,qty:hogRings,unit:'ea',spec:'1 per 24" bottom tension wire'},
+
+    ...(bwStrands>0?[
+      {cat:'Barbed wire'},
+      {name:`Barbed wire — ${bwStrands} strand(s) ${fs}`,qty:bwLF,unit:'LF',spec:`${bwStrands} strands × ${Math.round(lf*W)} LF`},
+    ]:[]),
+
+    ...(totalGates>0?[
+      {cat:'Gates'},
+      ...(walk4>0?[{name:`Walk gate 4ft x ${h}ft ${fs} — complete`,qty:walk4,unit:'ea',spec:'with hinges, latch, fabric, rings'}]:[]),
+      ...(drive12>0?[{name:`Double drive gate 12ft x ${h}ft ${fs}`,qty:drive12,unit:'ea',spec:'with hinges, latch, fabric, rings'}]:[]),
+      ...(drive16>0?[{name:`Double drive gate 16ft x ${h}ft ${fs}`,qty:drive16,unit:'ea',spec:'with hinges, latch, fabric, rings'}]:[]),
+      ...(drive20>0?[{name:`Double drive gate 20ft x ${h}ft ${fs}`,qty:drive20,unit:'ea',spec:'with hinges, latch, fabric, rings'}]:[]),
+      ...(slide12>0?[{name:`Slide gate 12ft x ${h}ft ${fs}`,qty:slide12,unit:'ea',spec:'with slide hardware'}]:[]),
+      ...(slide16>0?[{name:`Slide gate 16ft x ${h}ft ${fs}`,qty:slide16,unit:'ea',spec:'with slide hardware'}]:[]),
+    ]:[]),
+
+    ...(spray>0?[
+      {cat:'Touch-up'},
+      {name:`Spray paint ${fs}`,qty:spray,unit:'cans',spec:'for cut ends and welds'},
+    ]:[]),
+  ];
+
+  window._rows=rows; window._job=job;
+  window._meta=`${fl.toUpperCase()} · ${h}FT · ${lf}LF · ${spacing}FT OC · ${wastePct*100}% OVERAGE`;
+
+  let html='';
+  rows.forEach(r=>{
+    if(r.cat){
+      html+=`<tr class="cat-row"><td colspan="3">${r.cat}</td></tr>`;
+    } else {
+      html+=`<tr><td><div class="item-name">${r.name}</div><div class="item-spec">${r.spec}</div></td><td>${r.unit}</td><td>${r.qty.toLocaleString()}</td></tr>`;
+    }
+  });
+
+  document.getElementById('mat-table').innerHTML=
+    `<thead><tr><th>Material / specification</th><th style="text-align:right">Unit</th><th style="text-align:right">Qty</th></tr></thead><tbody>${html}</tbody>`;
+
+  document.getElementById('res-jobname').textContent=job;
+  document.getElementById('res-meta').textContent=window._meta;
+  document.getElementById('s-lf').textContent=Math.round(lf).toLocaleString();
+  document.getElementById('s-lp').textContent=linePosts;
+  document.getElementById('s-tp').textContent=termPosts;
+  document.getElementById('s-fab').textContent=fabricLF.toLocaleString();
+  document.getElementById('res-note').textContent=
+    `${termOD} terminal · ${lineOD} line · ${rSz} top rail · ${fg} fabric · ${mesh} mesh · 811 locate required`;
+
+  const el=document.getElementById('results');
+  el.classList.add('show');
+  el.scrollIntoView({behavior:'smooth',block:'start'});
+}
+
+function copyList(){
+  if(!window._rows) return;
+  let t=`${window._job}\n${window._meta}\n${'─'.repeat(50)}\n`;
+  window._rows.forEach(r=>{
+    if(r.cat) t+=`\n[ ${r.cat.toUpperCase()} ]\n`;
+    else t+=`${r.name}\n  → ${r.qty.toLocaleString()} ${r.unit}  |  ${r.spec}\n`;
+  });
+  t+=`\n${'─'.repeat(50)}\nGenerated by Mario's Brain v3 · Gomez & Son Fence`;
+  navigator.clipboard.writeText(t).then(()=>{
+    const btn=document.getElementById('copy-btn');
+    btn.textContent='Copied ✓';
+    btn.classList.add('success');
+    setTimeout(()=>{btn.textContent='Copy supplier order';btn.classList.remove('success');},2500);
+  });
+}
+</script>
+</body>
+</html>
